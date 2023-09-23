@@ -170,8 +170,15 @@ class _ICaRLPlugin(SupervisedPlugin):
             with torch.no_grad():
                 self.input_size = strategy.mb_x.shape[1:]
                 self.output_size = strategy.model(strategy.mb_x).shape[1]
+                first_layer = next(iter(strategy.model.feature_extractor.children()))
+                if isinstance(first_layer, torch.nn.Linear):
+                    reshaped_mb_x = strategy.mb_x.reshape(strategy.mb_x.shape[0], first_layer.in_features)
+
                 self.embedding_size = strategy.model.feature_extractor(
                     strategy.mb_x
+                ).shape[1] if not isinstance(first_layer, torch.nn.Linear) else \
+                    strategy.model.feature_extractor(
+                    reshaped_mb_x
                 ).shape[1]
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
@@ -195,6 +202,9 @@ class _ICaRLPlugin(SupervisedPlugin):
             class_samples = class_samples.to(strategy.device)
 
             with torch.no_grad():
+                first_layer = next(iter(strategy.model.feature_extractor.children()))
+                if isinstance(first_layer, torch.nn.Linear):
+                    class_samples = class_samples.reshape(class_samples.shape[0], first_layer.in_features)
                 mapped_prototypes = strategy.model.feature_extractor(
                     class_samples
                 ).detach()
@@ -256,6 +266,9 @@ class _ICaRLPlugin(SupervisedPlugin):
                 class_pt = class_pt.to(strategy.device)
                 class_patterns.append(class_pt)
                 with torch.no_grad():
+                    first_layer = next(iter(strategy.model.feature_extractor.children()))
+                    if isinstance(first_layer, torch.nn.Linear):
+                        class_pt = class_pt.reshape(class_pt.shape[0], first_layer.in_features)
                     mapped_pttp = strategy.model.feature_extractor(class_pt).detach()
                 mapped_prototypes.append(mapped_pttp)
 

@@ -218,7 +218,13 @@ class BaseSGDTemplate(
 
     def optimizer_step(self):
         """Execute the optimizer step (weights update)."""
+        for p in list(self.model.parameters()):
+            if hasattr(p,'org'):
+                p.data.copy_(p.org)
         self.optimizer.step()
+        for p in list(self.model.parameters()):
+            if hasattr(p,'org'):
+                p.org.copy_(p.data.clamp_(-1,1))   
 
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""
