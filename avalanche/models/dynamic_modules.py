@@ -453,6 +453,12 @@ class TrainEvalModel(torch.nn.Module):
         self.eval_classifier = eval_classifier
 
     def forward(self, x):
+        first_layer = next(iter(self.feature_extractor.children()))
+
+        if isinstance(first_layer, torch.nn.Linear):
+            x = x.contiguous()
+            x = x.view(x.size(0), first_layer.in_features)
+
         x = self.feature_extractor(x)
         if self.training:
             return self.train_classifier(x)
